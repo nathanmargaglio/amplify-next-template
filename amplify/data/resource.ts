@@ -15,7 +15,7 @@ const schema = a.schema({
     })
     .returns(a.string())
     // .authorization(allow => [allow.guest()])
-    // .authorization((allow) => [allow.publicApiKey()])
+    .authorization((allow) => [allow.publicApiKey()])
     .handler(a.handler.function(sayHello)),
 });
 
