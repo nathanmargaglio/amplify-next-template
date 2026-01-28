@@ -3,6 +3,7 @@
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useState, useEffect, useCallback } from "react";
 import { generateClient } from "aws-amplify/data";
+import { fetchAuthSession } from "aws-amplify/auth";
 import type { Schema } from "@/amplify/data/resource";
 import "./../app/app.css";
 import { Amplify } from "aws-amplify";
@@ -37,30 +38,30 @@ export default function App() {
     client.models.Todo.delete({ id })
   }
 
-  const [responseText, setResponseText] = useState("");
+  const handleToken = useCallback(async () => {
+    try {
+      const session = await fetchAuthSession();
+      const idToken = session.tokens?.idToken?.toString();
+      const accessToken = session.tokens?.accessToken?.toString();
 
-  const loadContent = useCallback((path: string) => {
-    client.queries.sayHello({
-      path,
-    }).then((response) => {
-      if (response.data) {
-        setResponseText(response.data);
-      } else if (response.errors) {
-        setResponseText(`Error: ${response.errors.map(e => e.message).join(", ")}`);
-      }
-    });
+      console.log("ID Token:", idToken);
+      console.log("Access Token:", accessToken);
+
+      client.queries.sayHello({
+        token: idToken,
+      }).then((response) => {
+        if (response.data) {
+          console.log(response.data);
+          // set the response on a cookie
+          document.cookie = `sayHelloResponse=${response.data}; path=/`;
+        } else if (response.errors) {
+          console.log(`Error: ${response.errors.map(e => e.message).join(", ")}`);
+        }
+      });
+    } catch (error) {
+      console.error("Error fetching auth session:", error);
+    }
   }, []);
-
-  // Listen for navigation messages from the iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "navigate" && event.data?.path) {
-        loadContent(event.data.path);
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, [loadContent]);
 
   const { signOut } = useAuthenticator();
 
@@ -80,14 +81,9 @@ export default function App() {
           Review next steps of this tutorial.
         </a>
       </div>
-      <button onClick={() => loadContent("index.html")}>Load HTML</button>
-      {responseText && (
-        <iframe
-          srcDoc={responseText}
-          style={{ width: "100%", height: "400px", border: "1px solid #ccc", marginTop: "10px" }}
-          title="S3 HTML Content"
-        />
-      )}
+      <br />
+      <button onClick={() => handleToken()}>Handle Token</button>
+      <br />
       <button onClick={signOut}>Sign out</button>
     </main>
   );

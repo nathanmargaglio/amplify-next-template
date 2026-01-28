@@ -11,7 +11,7 @@ const schema = a.schema({
   sayHello: a
     .query()
     .arguments({
-      path: a.string(),
+      token: a.string(),
     })
     .returns(a.string())
     // .authorization(allow => [allow.guest()])
